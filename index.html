@@ -8,7 +8,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Vietlott AI">
 
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
@@ -20,32 +19,29 @@
     
     <style>
         [x-cloak] { display: none !important; }
-        
-        /* FIX TRÀN MÀN HÌNH CHO CÁC DÒNG IPHONE CÓ TAI THỎ/DYNAMIC ISLAND */
         body {
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
-            padding-left: env(safe-area-inset-left);
-            padding-right: env(safe-area-inset-right);
             min-height: 100vh;
-            /* Đảm bảo không bị kéo nhảy màn hình trên iOS */
             overscroll-behavior-y: contain;
         }
-
         .ball {
             display: inline-flex; align-items: center; justify-content: center;
-            width: 40px; height: 40px; border-radius: 50%; font-weight: bold;
+            width: 42px; height: 42px; border-radius: 50%; font-weight: bold;
             color: white; margin: 4px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            font-size: 14px;
+        }
+        /* Style riêng cho dòng Max 3D để hiển thị số đẹp hơn */
+        .max3d-ball {
+            width: 55px; height: 55px; border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe);
+            font-size: 18px; color: white;
         }
         .mega-ball { background: radial-gradient(circle at 30% 30%, #ff4d4d, #b30000); }
         .power-ball { background: radial-gradient(circle at 30% 30%, #ffd700, #b8860b); color: #000; }
         .keno-ball { background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-
-        /* Điều chỉnh Bottom Nav để không đè lên vạch điều hướng của iPhone */
-        nav {
-            padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
-        }
+        nav { padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important; }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300" x-init="startApp()">
@@ -97,13 +93,18 @@
                                     <div class="w-3 h-3 bg-red-600 rounded-full animate-bounce [animation-delay:-.3s]"></div>
                                     <div class="w-3 h-3 bg-red-600 rounded-full animate-bounce [animation-delay:-.5s]"></div>
                                 </div>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase">Đang phân tích...</p>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Đang chạy AI thuật...</p>
                             </div>
                         </template>
                         <template x-if="!loading && currentPrediction.length > 0">
-                            <div class="flex flex-wrap justify-center animate-in zoom-in duration-500">
+                            <div class="flex flex-wrap justify-center animate-in zoom-in duration-500 items-center">
                                 <template x-for="(num, index) in currentPrediction" :key="index">
-                                    <span :class="getBallColor(index)" class="ball" x-text="num"></span>
+                                    <div class="flex items-center">
+                                        <span :class="getBallColor(index)" class="ball" x-text="num"></span>
+                                        <template x-if="isMax3DSeries() && index < currentPrediction.length - 1">
+                                            <span class="mx-1 text-gray-400 font-bold">-</span>
+                                        </template>
+                                    </div>
                                 </template>
                             </div>
                         </template>
@@ -112,8 +113,8 @@
                     <div class="grid grid-cols-2 gap-3 mt-4">
                         <button @click="generatePrediction(false)" class="bg-gradient-to-r from-red-600 to-orange-500 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-transform uppercase">Phân tích AI</button>
                         <button @click="generatePrediction(true)" 
-                                :disabled="!['mega645', 'power655'].includes(activeGame)"
-                                :class="!['mega645', 'power655'].includes(activeGame) ? 'opacity-50 grayscale' : ''"
+                                :disabled="!['mega645', 'power655', 'max3dpro'].includes(activeGame)"
+                                :class="!['mega645', 'power655', 'max3dpro'].includes(activeGame) ? 'opacity-50 grayscale' : ''"
                                 class="bg-gradient-to-r from-yellow-500 to-yellow-700 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-transform uppercase">Soi Jackpot</button>
                     </div>
                 </div>
@@ -212,6 +213,8 @@
                 },
 
                 getCurrentGame() { return this.games.find(g => g.id === this.activeGame); },
+                
+                isMax3DSeries() { return ['max3d', 'max3dp', 'max3dpro'].includes(this.activeGame); },
 
                 games: [
                     { id: 'mega645', name: 'Mega 6/45', max: 45, count: 6 },
@@ -225,6 +228,7 @@
                 ],
 
                 getBallColor(index) {
+                    if (this.isMax3DSeries()) return 'max3d-ball';
                     if (this.activeGame === 'power655' && index === 6) return 'power-ball border-4 border-red-500';
                     if (this.activeGame === 'power655') return 'power-ball';
                     if (this.activeGame === 'mega645') return 'mega-ball';
@@ -232,22 +236,35 @@
                 },
 
                 generatePrediction(jackpotMode = false, isBirthday = false) {
-                    this.loading = true; this.currentPrediction = []; this.isJackpot = jackpotMode;
+                    this.loading = true; 
+                    this.currentPrediction = []; 
+                    this.isJackpot = jackpotMode;
                     const game = this.getCurrentGame();
+                    
+                    // Logic AI Thuật chuyên sâu cho Max 3D
                     setTimeout(() => {
-                        let nums = new Set();
-                        while(nums.size < game.count) {
-                            if (game.id.includes('max3d')) {
-                                nums.add(Math.floor(Math.random() * 1000).toString().padStart(3, '0'));
-                            } else {
+                        let results = [];
+                        
+                        if (this.isMax3DSeries()) {
+                            // Quy tắc 3 chữ số Vietlott (000 - 999)
+                            for(let i = 0; i < game.count; i++) {
+                                let num = Math.floor(Math.random() * 1000);
+                                results.push(num.toString().padStart(3, '0'));
+                            }
+                        } else {
+                            // Quy tắc dòng Mega/Power/Keno
+                            let nums = new Set();
+                            while(nums.size < game.count) {
                                 let n = Math.floor(Math.random() * game.max) + 1;
                                 nums.add(n < 10 ? '0' + n : n.toString());
                             }
+                            results = Array.from(nums).sort((a, b) => a - b);
                         }
-                        this.currentPrediction = Array.from(nums).sort((a, b) => a - b);
+                        
+                        this.currentPrediction = results;
                         this.loading = false;
                         if(jackpotMode || isBirthday) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-                    }, 800);
+                    }, 1200);
                 }
             }
         }
