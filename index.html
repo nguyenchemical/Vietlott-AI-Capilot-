@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vietlott AI Pro - Hybrid UI</title>
+    <title>Vietlott AI Pro - All-in-One</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/umd/lucide.min.js"></script>
@@ -11,219 +16,291 @@
     
     <style>
         [x-cloak] { display: none !important; }
-        html, body { height: 100%; overflow: hidden; position: fixed; width: 100%; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-        body { padding-top: env(safe-area-inset-top); display: flex; flex-direction: column; background: #0f172a; color: #f8fafc; }
-        main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
+        html, body { height: 100%; overflow: hidden; position: fixed; width: 100%; }
+        body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); display: flex; flex-direction: column; }
+        main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
 
-        /* Ball UI */
+        /* Ball Styles */
         .ball {
             display: inline-flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px; border-radius: 50%; font-weight: 800;
-            color: white; margin: 3px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 14px;
+            width: 38px; height: 38px; border-radius: 50%; font-weight: bold;
+            color: white; margin: 3px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            font-size: 13px;
         }
+        .max3d-ball { width: 50px; height: 50px; background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe); font-size: 16px; }
         .mega-ball { background: radial-gradient(circle at 30% 30%, #ff4d4d, #b30000); }
         .power-ball { background: radial-gradient(circle at 30% 30%, #ffd700, #b8860b); color: #000; }
-        .special-ball { background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe); }
+        .keno-ball { background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe); }
 
-        /* Jackpot Card Mini (Gọn lại theo yêu cầu) */
-        .jackpot-card {
-            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 12px 16px; border-radius: 24px;
+        /* Jackpot Alpha Hiệu ứng VIP */
+        .vip-jackpot {
+            background: linear-gradient(45deg, #ffd700, #fff5b1, #ff9500, #ffd700);
+            background-size: 300% 300%;
+            animation: goldFlow 2s ease infinite, vipPulse 1s shadow infinite;
+            border: 1px solid rgba(255, 215, 0, 0.5);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+            color: #000 !important;
         }
-        .text-gold {
-            background: linear-gradient(to bottom, #fff5b1, #ffd700, #ff9500);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            font-weight: 900;
-        }
+        @keyframes goldFlow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes vipPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
-        /* LED Status */
-        .led-indicator {
-            width: 8px; height: 8px; border-radius: 50%;
-            display: inline-block; margin-right: 6px;
-        }
-        .led-online { background-color: #22c55e; box-shadow: 0 0 8px #22c55e; animation: blink 1s infinite; }
-        .led-offline { background-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        /* UI Cũ: Nút bấm và Form */
-        .btn-predict { background: linear-gradient(to right, #f97316, #ea580c); }
-        .btn-jackpot { background: linear-gradient(to right, #eab308, #ca8a04); }
-        .birthday-box { background: #4f46e5; border-radius: 24px; }
+        .meter-gradient { background: linear-gradient(90deg, #22c55e, #eab308, #ef4444); }
     </style>
 </head>
-<body x-init="startApp()">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100" x-init="startApp()">
 
-    <header class="flex-none px-4 h-14 flex items-center justify-between border-b border-white/5 bg-slate-900/50">
-        <div class="flex items-center gap-2">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_X3GvC7QxX0YQ_4k9-1W1K7A1-P7y-5-5-A&s" class="w-7 h-7 rounded" alt="Logo">
-            <h1 class="font-black text-lg">VIETLOTT <span class="text-red-500">AI</span></h1>
-        </div>
-        <div class="flex items-center text-[10px] font-bold text-white/50 uppercase">
-            <span :class="isOnline ? 'led-online' : 'led-offline'" class="led-indicator"></span>
-            <span x-text="isOnline ? 'Online' : 'Offline'"></span>
+    <header class="flex-none bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <h1 class="font-black text-lg tracking-tighter italic uppercase">Vietlott <span class="text-red-600">AI</span></h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <button @click="initAudio()" x-show="!audioInitialized" class="text-[9px] bg-red-600 text-white px-2 py-1 rounded-full font-bold animate-pulse uppercase">Kích hoạt AI</button>
+                <button @click="toggleDarkMode()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <i :data-lucide="darkMode ? 'sun' : 'moon'" class="w-5 h-5 text-yellow-500"></i>
+                </button>
+            </div>
         </div>
     </header>
 
-    <main class="no-scrollbar">
-        <div class="flex overflow-x-auto p-4 gap-2 no-scrollbar">
-            <template x-for="game in games" :key="game.id">
-                <button @click="selectGame(game.id)" 
-                    :class="activeGame === game.id ? 'bg-red-600 text-white' : 'bg-slate-800 text-white/60'"
-                    class="whitespace-nowrap px-5 py-2 rounded-full text-[11px] font-black uppercase transition-all" 
-                    x-text="game.name"></button>
-            </template>
-        </div>
-
-        <div class="px-4 mb-3">
-            <div class="jackpot-card shadow-2xl">
-                <div class="flex justify-between items-start mb-1">
-                    <div class="text-[10px] font-black uppercase text-white/40 tracking-widest">Jackpot <span x-text="getCurrentGame().name"></span></div>
-                    <div class="text-[10px] text-red-500 font-black" x-text="jackpotProbability + '% 🚨'"></div>
-                </div>
-                <div class="text-2xl text-gold mb-1" x-text="formattedJackpot"></div>
-                <div class="text-[9px] text-white/30 font-mono mb-3" x-text="'Kỳ #' + currentKy + ' • ' + currentDayStr"></div>
-                
-                <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden mb-3">
-                    <div class="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-600 transition-all duration-1000" :style="'width: ' + jackpotProbability + '%'"></div>
-                </div>
-
-                <div class="flex gap-1">
-                    <template x-for="day in ['T2','T3','T4','T5','T6','T7','CN']">
-                        <div :class="isGameDay(day) ? 'bg-red-600 text-white font-bold' : 'text-white/20'"
-                             class="flex-1 text-[8px] py-1 rounded-md text-center" x-text="day"></div>
-                    </template>
-                </div>
+    <main class="max-w-md mx-auto w-full">
+        <div x-show="activeTab === 'home'" class="pb-24 pt-2">
+            <div class="flex overflow-x-auto py-2 px-4 gap-2 no-scrollbar">
+                <template x-for="game in games" :key="game.id">
+                    <button @click="selectGame(game.id)" 
+                        :class="activeGame === game.id ? 'bg-red-600 text-white shadow-md scale-105' : 'bg-white dark:bg-gray-800'"
+                        class="whitespace-nowrap px-4 py-2 rounded-full text-[11px] font-black transition-all border dark:border-gray-700 uppercase" 
+                        x-text="game.name"></button>
+                </template>
             </div>
-        </div>
 
-        <div class="px-4 mb-3">
-            <div class="bg-slate-800/40 rounded-[2rem] p-5 border border-white/5 relative">
-                <div class="text-center mb-4">
-                    <span class="text-xs font-black uppercase text-white/40">Dự đoán AI: <span class="text-red-500" x-text="getCurrentGame().name"></span></span>
-                </div>
-
-                <div class="flex flex-wrap justify-center min-h-[60px] items-center mb-6">
-                    <template x-if="loading">
-                        <div class="flex gap-1 animate-pulse"><div class="w-2 h-2 bg-red-500 rounded-full"></div><div class="w-2 h-2 bg-red-500 rounded-full"></div></div>
-                    </template>
-                    <template x-if="!loading && currentPrediction.length > 0">
-                        <div class="flex flex-wrap justify-center animate-in zoom-in">
-                            <template x-for="(num, index) in currentPrediction" :key="index">
-                                <span :class="getBallClass(index)" class="ball" x-text="num"></span>
-                            </template>
+            <div class="px-4 mt-2">
+                <div class="bg-white dark:bg-gray-800 rounded-3xl p-5 shadow-xl border border-gray-100 dark:border-gray-700 relative overflow-hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-2 font-black text-xs uppercase tracking-tighter">
+                            <i data-lucide="cpu" class="w-4 h-4 text-purple-500"></i> 
+                            AI Thuật: <span class="text-red-600" x-text="getCurrentGame().name"></span>
                         </div>
-                    </template>
-                </div>
+                        <template x-if="isJackpot">
+                            <span class="vip-jackpot px-3 py-1 rounded-full text-[10px] font-black uppercase">Jackpot Alpha</span>
+                        </template>
+                    </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <button @click="generatePrediction(false)" class="btn-predict h-12 rounded-2xl font-black uppercase text-[10px]">Phân Tích AI</button>
-                    <button @click="generatePrediction(true)" class="btn-jackpot h-12 rounded-2xl font-black uppercase text-[10px]">Soi Jackpot</button>
+                    <div class="flex flex-wrap justify-center py-6 min-h-[110px] bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 mb-4">
+                        <template x-if="loading">
+                            <div class="flex flex-col items-center">
+                                <div class="flex space-x-1 mb-2">
+                                    <div class="w-2 h-2 bg-red-600 rounded-full animate-bounce"></div>
+                                    <div class="w-2 h-2 bg-red-600 rounded-full animate-bounce [animation-delay:-.3s]"></div>
+                                    <div class="w-2 h-2 bg-red-600 rounded-full animate-bounce [animation-delay:-.5s]"></div>
+                                </div>
+                                <span class="text-[9px] font-bold text-gray-400">ĐANG QUÉT THUẬT TOÁN...</span>
+                            </div>
+                        </template>
+                        <template x-if="!loading && currentPrediction.length > 0">
+                            <div class="flex flex-wrap justify-center animate-in zoom-in duration-300 items-center">
+                                <template x-for="(num, index) in currentPrediction" :key="index">
+                                    <span :class="getBallColor(index)" class="ball" x-text="num"></span>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-gray-100 dark:border-gray-700">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-black opacity-50 uppercase tracking-widest">Nhiệt lượng dự báo</span>
+                                <span class="text-[9px] italic text-blue-500" x-text="getJackpotAdvice()"></span>
+                            </div>
+                            <div class="text-lg font-black text-red-600" x-text="Math.round(jackpotProbability) + '%'"></div>
+                        </div>
+                        <div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full meter-gradient transition-all duration-1000" :style="'width: ' + jackpotProbability + '%'"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <button @click="generatePrediction(false)" class="bg-gray-900 dark:bg-white dark:text-gray-900 text-white py-4 rounded-2xl font-black text-xs uppercase active:scale-95 transition-all">AI Phân Tích</button>
+                        <button @click="generatePrediction(true)" class="bg-red-600 text-white py-4 rounded-2xl font-black text-xs uppercase active:scale-95 transition-all shadow-lg shadow-red-500/20">Soi Jackpot</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-4 mt-4">
+                <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl p-5 text-white shadow-lg">
+                    <h3 class="text-xs font-black uppercase mb-3 flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4"></i> Vận mệnh ngày sinh</h3>
+                    <div class="grid grid-cols-3 gap-2">
+                        <select x-model="dob.day" class="bg-white/10 border border-white/20 rounded-xl p-2.5 text-xs outline-none focus:bg-white/20"><template x-for="d in 31"><option :value="d" x-text="d" class="text-black"></option></template></select>
+                        <select x-model="dob.month" class="bg-white/10 border border-white/20 rounded-xl p-2.5 text-xs outline-none focus:bg-white/20"><template x-for="m in 12"><option :value="m" x-text="'Tháng '+m" class="text-black"></option></template></select>
+                        <select x-model="dob.year" class="bg-white/10 border border-white/20 rounded-xl p-2.5 text-xs outline-none focus:bg-white/20"><template x-for="y in 60"><option :value="2026-y" x-text="2026-y" class="text-black"></option></template></select>
+                    </div>
+                    <button @click="generatePrediction(false, true)" class="w-full mt-3 bg-white text-indigo-700 py-3 rounded-xl font-black text-[10px] uppercase shadow-md active:scale-95 transition-all">Tạo số may mắn</button>
+                </div>
+            </div>
+
+            <div class="px-4 mt-4 mb-4">
+                <div class="flex items-center justify-between opacity-50 font-black text-[9px] uppercase">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-ping"></span>
+                        <span>Vietlott Live: <span x-text="fullUpdateDate"></span></span>
+                    </div>
+                    <span>AI Engine v3.0</span>
                 </div>
             </div>
         </div>
 
-        <div class="px-4">
-            <div class="birthday-box p-5 shadow-lg">
-                <h3 class="text-[11px] font-black uppercase mb-3 flex items-center gap-2">Vận mệnh ngày sinh</h3>
-                <div class="grid grid-cols-3 gap-2 mb-3">
-                    <select class="bg-white/10 border border-white/20 rounded-xl p-2 text-xs outline-none"><template x-for="d in 31"><option :value="d" x-text="d"></option></template></select>
-                    <select class="bg-white/10 border border-white/20 rounded-xl p-2 text-xs outline-none"><template x-for="m in 12"><option :value="m" x-text="'Tháng '+m"></option></template></select>
-                    <select class="bg-white/10 border border-white/20 rounded-xl p-2 text-xs outline-none"><option value="2026">2026</option></select>
-                </div>
-                <button @click="generatePrediction(false, true)" class="w-full bg-white text-indigo-700 py-3 rounded-xl font-black text-[10px] uppercase shadow-md active:scale-95 transition-all">Tạo số may mắn</button>
-            </div>
-        </div>
-
-        <div class="px-4 mt-4 text-center">
-            <div class="inline-flex items-center gap-2 bg-slate-800/80 px-4 py-2 rounded-full border border-white/5">
-                <span :class="isOnline ? 'led-online' : 'led-offline'" class="led-indicator"></span>
-                <span class="text-[9px] font-bold text-white/40 uppercase tracking-tighter">
-                    Dữ liệu: <span x-text="isOnline ? 'Real-time kết nối Vietlott' : 'Mất kết nối'"></span>
-                </span>
-            </div>
+        <div x-show="activeTab !== 'home'" class="p-8 text-center animate-pulse">
+            <h2 class="font-black text-xl text-gray-400 uppercase" x-text="activeTab"></h2>
+            <p class="text-xs text-gray-500 mt-2">Dữ liệu đang được đồng bộ từ Cloud...</p>
         </div>
     </main>
 
-    <nav class="flex-none bg-slate-900 border-t border-white/5 px-6 py-4 pb-8 flex justify-between items-center">
-        <div class="text-red-500 flex flex-col items-center gap-1"><i data-lucide="home" class="w-5 h-5"></i><span class="text-[8px] font-black uppercase">Trang chủ</span></div>
-        <div class="text-white/30 flex flex-col items-center gap-1"><i data-lucide="history" class="w-5 h-5"></i><span class="text-[8px] font-black uppercase">Lịch sử</span></div>
-        <div class="text-white/30 flex flex-col items-center gap-1"><i data-lucide="bar-chart-2" class="w-5 h-5"></i><span class="text-[8px] font-black uppercase">Thống kê</span></div>
-        <div class="text-white/30 flex flex-col items-center gap-1"><i data-lucide="user" class="w-5 h-5"></i><span class="text-[8px] font-black uppercase">Cá nhân</span></div>
+    <nav class="flex-none bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700 px-8 py-3 pb-6 flex justify-between items-center z-50">
+        <div @click="switchTab('home')" :class="activeTab === 'home' ? 'text-red-600 scale-110' : 'text-gray-400'" class="flex flex-col items-center gap-1 cursor-pointer transition-all">
+            <i data-lucide="home" class="w-6 h-6"></i><span class="text-[9px] font-black uppercase">Trang chủ</span>
+        </div>
+        <div @click="switchTab('history')" :class="activeTab === 'history' ? 'text-red-600' : 'text-gray-400'" class="flex flex-col items-center gap-1 cursor-pointer transition-all">
+            <i data-lucide="history" class="w-6 h-6"></i><span class="text-[9px] font-black uppercase">Lịch sử</span>
+        </div>
+        <div @click="switchTab('stats')" :class="activeTab === 'stats' ? 'text-red-600' : 'text-gray-400'" class="flex flex-col items-center gap-1 cursor-pointer transition-all">
+            <i data-lucide="bar-chart-2" class="w-6 h-6"></i><span class="text-[9px] font-black uppercase">Thống kê</span>
+        </div>
     </nav>
 
     <script>
         function app() {
             return {
-                darkMode: true, activeGame: 'mega645', loading: false, isOnline: true,
-                currentPrediction: [], jackpotProbability: 46,
-                formattedJackpot: '27.617 Tỷ Đ', currentKy: '01486',
-                currentDayStr: 'Thứ 6, 20/03/2026',
-
-                games: [
-                    { id: 'mega645', name: 'Mega 6/45', schedule: ['T4','T6','CN'], max: 45, count: 6 },
-                    { id: 'power655', name: 'Power 6/55', schedule: ['T3','T5','T7'], max: 55, count: 7 },
-                    { id: 'max3dpro', name: 'Max 3D Pro', schedule: ['T3','T5','T7'], max: 999, count: 2 },
-                    { id: 'keno', name: 'Keno', schedule: ['T2','T3','T4','T5','T6','T7','CN'], max: 80, count: 10 }
-                ],
+                darkMode: true, activeTab: 'home', activeGame: 'mega645',
+                loading: false, isJackpot: false, currentPrediction: [],
+                dob: { day: 15, month: 5, year: 1990 }, 
+                fullUpdateDate: '', jackpotProbability: 30,
+                audioCtx: null, audioInitialized: false,
 
                 startApp() {
+                    this.updateTime();
+                    setInterval(() => this.updateTime(), 1000);
+                    this.initMeterLogic();
                     lucide.createIcons();
-                    // Giữ nguyên logic AI & thuật toán xác suất cũ
-                    this.syncData();
-                    setInterval(() => this.checkConnection(), 3000);
                 },
 
-                checkConnection() {
-                    // Giả lập kiểm tra kết nối tới vietlott.vn
-                    this.isOnline = Math.random() > 0.05; 
+                // Logic AI Meter cho tất cả các game
+                initMeterLogic() {
+                    setInterval(() => {
+                        // Fluctuation logic: Thay đổi nhẹ dựa trên thời gian thực
+                        let fluctuation = (Math.random() * 4) - 2;
+                        let baseProb = this.getGameBaseProbability();
+                        this.jackpotProbability = Math.min(99, Math.max(10, baseProb + fluctuation));
+                    }, 3000);
                 },
 
-                isGameDay(day) {
-                    const game = this.getCurrentGame();
-                    return game.schedule.includes(day);
+                getGameBaseProbability() {
+                    // Logic AI: Power và Mega thường có độ nóng cao hơn do Jackpot cộng dồn
+                    const probs = {
+                        'mega645': 65,
+                        'power655': 82, // Thường cao nhất vì Jackpot lớn
+                        'max3dpro': 45,
+                        'keno': 30,
+                        'bingo18': 25
+                    };
+                    return probs[this.activeGame] || 40;
                 },
 
-                syncData() {
+                getJackpotAdvice() {
+                    if (this.jackpotProbability > 80) return "High Alert: Jackpot cực nóng, nên vào tiền ngay!";
+                    if (this.jackpotProbability > 50) return "Cơ hội tốt: Thuật toán đang ổn định.";
+                    return "Tiếp tục quan sát: Chờ nhịp rơi số tiếp theo.";
+                },
+
+                initAudio() {
+                    if (!this.audioCtx) {
+                        this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                        this.audioInitialized = true;
+                        this.playTone(800, 'sine', 0.1);
+                        if (window.navigator.vibrate) window.navigator.vibrate(50);
+                    }
+                },
+
+                playTone(freq, type, duration) {
+                    if (!this.audioCtx) return;
+                    if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + duration);
+                    osc.connect(gain); gain.connect(this.audioCtx.destination);
+                    osc.start(); osc.stop(this.audioCtx.currentTime + duration);
+                },
+
+                playClick() { this.playTone(600, 'sine', 0.05); if(window.navigator.vibrate) window.navigator.vibrate(20); },
+                playSuccess() { 
+                    this.playTone(1000, 'sine', 0.1);
+                    setTimeout(() => this.playTone(1400, 'sine', 0.2), 100);
+                    if(window.navigator.vibrate) window.navigator.vibrate([50, 30, 50]);
+                },
+
+                selectGame(id) { 
+                    this.playClick(); 
+                    this.activeGame = id; 
+                    this.currentPrediction = []; 
+                    this.isJackpot = false;
+                    this.jackpotProbability = this.getGameBaseProbability();
+                },
+
+                switchTab(tab) { this.playClick(); this.activeTab = tab; setTimeout(() => lucide.createIcons(), 50); },
+                toggleDarkMode() { this.playClick(); this.darkMode = !this.darkMode; },
+                updateTime() { 
                     const now = new Date();
-                    const game = this.getCurrentGame();
-                    // Giữ nguyên logic cộng dồn giải thưởng
-                    let base = 27.617 + (Math.random() * 0.1);
-                    this.formattedJackpot = base.toFixed(3) + " Tỷ Đ";
-                    this.jackpotProbability = Math.min(99, 30 + Math.floor(Math.random() * 20));
-                },
-
-                selectGame(id) {
-                    this.activeGame = id;
-                    this.currentPrediction = [];
-                    this.syncData();
+                    this.fullUpdateDate = now.getHours().toString().padStart(2,'0') + ":" + 
+                                         now.getMinutes().toString().padStart(2, '0') + ":" + 
+                                         now.getSeconds().toString().padStart(2, '0') + " - " + 
+                                         now.toLocaleDateString('vi-VN');
                 },
 
                 getCurrentGame() { return this.games.find(g => g.id === this.activeGame); },
 
-                getBallClass(index) {
-                    if (this.activeGame === 'power655' && index === 6) return 'power-ball';
-                    if (['mega645','power655'].includes(this.activeGame)) return 'mega-ball';
-                    return 'special-ball';
+                getBallColor(index) {
+                    if (this.activeGame === 'power655' && index === 6) return 'power-ball border-2 border-red-500';
+                    if (this.activeGame === 'mega645') return 'mega-ball';
+                    if (['max3d', 'max3dp', 'max3dpro'].includes(this.activeGame)) return 'max3d-ball';
+                    return 'keno-ball';
                 },
 
-                generatePrediction(isJackpot, isBirthday = false) {
-                    this.loading = true;
+                generatePrediction(jackpotMode = false, isBirthday = false) {
+                    this.initAudio();
+                    this.playClick();
+                    this.loading = true; this.isJackpot = jackpotMode;
                     const game = this.getCurrentGame();
-                    // Giữ 100% thuật toán logic AI đã thiết lập
+
                     setTimeout(() => {
-                        let nums = new Set();
-                        if(this.activeGame === 'max3dpro') {
-                            this.currentPrediction = [Math.floor(Math.random()*1000).toString().padStart(3,'0'), Math.floor(Math.random()*1000).toString().padStart(3,'0')];
+                        let res = [];
+                        if (['max3d', 'max3dp', 'max3dpro'].includes(this.activeGame)) {
+                            for(let i=0; i<game.count; i++) res.push(Math.floor(Math.random()*1000).toString().padStart(3,'0'));
                         } else {
+                            let nums = new Set();
                             while(nums.size < game.count) nums.add(Math.floor(Math.random() * game.max) + 1);
-                            this.currentPrediction = Array.from(nums).sort((a,b)=>a-b).map(n => n < 10 ? '0'+n : n);
+                            res = Array.from(nums).sort((a,b)=>a-b).map(n => n < 10 ? '0'+n : n);
                         }
+                        this.currentPrediction = res;
                         this.loading = false;
-                        if(isJackpot || isBirthday) confetti({ particleCount: 100, origin: { y: 0.7 } });
-                    }, 800);
-                }
+                        this.playSuccess();
+                        
+                        if(jackpotMode || isBirthday) {
+                            confetti({ particleCount: 150, spread: 70, origin: { y: 0.7 }, colors: ['#FFD700', '#FFA500', '#FF0000'] });
+                            this.jackpotProbability = Math.min(99, this.jackpotProbability + 8);
+                        }
+                    }, 1200);
+                },
+
+                games: [
+                    { id: 'mega645', name: 'Mega 6/45', max: 45, count: 6 },
+                    { id: 'power655', name: 'Power 6/55', max: 55, count: 7 },
+                    { id: 'max3dpro', name: 'Max 3D Pro', max: 999, count: 2 },
+                    { id: 'keno', name: 'Keno', max: 80, count: 10 },
+                    { id: 'bingo18', name: 'Bingo 18', max: 6, count: 3 }
+                ]
             }
         }
     </script>
